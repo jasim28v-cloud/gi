@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>VOID LION</title>
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <base href="./">
+    <link rel="manifest" href="./manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="loadingScreen">
+    <div class="loading-content">
+        <i class="fas fa-lion"></i>
+        <h1>VOID LION</h1>
+        <div class="spinner"></div>
+        <p id="loadingStatus">جاري التحميل...</p>
+    </div>
+</div>
+
+<div id="app" style="display:none">
+    
+    <!-- الشريط العلوي - VOID LION | بحث | رسائل | إشعارات -->
+    <div class="top-header">
+        <div class="logo" onclick="VoidApp.switchPage('home')">
+            <i class="fas fa-lion"></i>
+            <span>VOID LION</span>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="VoidApp.switchPage('explore')">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="icon-btn" onclick="VoidApp.openPanel('messagesPanel')">
+                <i class="fas fa-comment-dots"></i>
+                <span id="msgBadge" class="badge" style="display:none">0</span>
+            </button>
+            <button class="icon-btn" onclick="VoidApp.openPanel('notificationsPanel')">
+                <i class="fas fa-bell"></i>
+                <span id="notifBadge" class="badge" style="display:none">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- الصفحة الرئيسية - الفيديوهات -->
+    <section id="page-home" class="page active">
+        <div id="videoFeed" class="video-feed"></div>
+        
+        <div id="videoActions" class="video-actions" style="display:none">
+            <button class="action-btn" onclick="VoidVideo.toggleLike()">
+                <i class="fas fa-heart" id="likeIcon"></i>
+                <span id="likeCount">0</span>
+            </button>
+            <button class="action-btn" onclick="VoidVideo.openComments()">
+                <i class="fas fa-comment"></i>
+                <span id="commentCount">0</span>
+            </button>
+            <button class="action-btn" onclick="VoidVideo.shareVideo()">
+                <i class="fas fa-share"></i>
+            </button>
+            <button class="action-btn" onclick="VoidReport.open()">
+                <i class="fas fa-flag" style="color:#ff0055"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- صفحة الاستكشاف -->
+    <section id="page-explore" class="page">
+        <div class="explore-container">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="ابحث عن فيديوهات، مستخدمين...">
+                <button onclick="VoidExplore.voiceSearch()"><i class="fas fa-microphone"></i></button>
+            </div>
+            <div class="trending-section">
+                <h3>🔥 الرائج الآن</h3>
+                <div id="trendingTags" class="hashtag-cloud"></div>
+            </div>
+            <div id="exploreGrid" class="explore-grid"></div>
+        </div>
+    </section>
+
+    <!-- صفحة الملف الشخصي (للمستخدم العادي) -->
+    <section id="page-profile" class="page">
+        <div id="profileCover" class="profile-cover">
+            <button class="edit-cover" onclick="VoidProfile.changeCover()"><i class="fas fa-camera"></i></button>
+        </div>
+        <div class="profile-info">
+            <div class="avatar-container">
+                <img id="profileAvatar" src="" alt="">
+                <button class="edit-avatar" onclick="VoidProfile.changeAvatar()"><i class="fas fa-camera"></i></button>
+            </div>
+            <div class="profile-card">
+                <div style="display:flex;align-items:center;gap:5px">
+                    <h2 id="profileName"></h2>
+                    <span id="verifiedBadge" style="display:none"><i class="fas fa-check-circle" style="color:#00f2ff"></i></span>
+                </div>
+                <p id="profileBio"></p>
+                <a id="profileLink" href="#" target="_blank" style="color:#00f2ff;display:flex;align-items:center;gap:5px"><i class="fas fa-link"></i> <span id="linkText"></span></a>
+            </div>
+            <div class="stats">
+                <div><span id="profileFollowers">0</span> متابع</div>
+                <div><span id="profileFollowing">0</span> يتابع</div>
+                <div><span id="profileVideos">0</span> فيديو</div>
+            </div>
+            <button class="btn-edit" onclick="VoidProfile.openEditModal()"><i class="fas fa-pen"></i> تعديل الملف</button>
+            <button class="btn-logout" onclick="VoidAuth.logout()"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+            <div id="profileVideosGrid" class="profile-videos"></div>
+        </div>
+    </section>
+
+    <!-- صفحة لوحة التحكم (للأدمن فقط) -->
+    <section id="page-admin" class="page">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2><i class="fas fa-crown" style="color:#ffd700"></i> لوحة التحكم</h2>
+                <button class="btn-logout" style="width:auto;padding:8px 20px" onclick="VoidAuth.logout()">تسجيل الخروج</button>
+            </div>
+            
+            <div class="admin-stats">
+                <div class="stat-card"><span id="adminUsers">0</span> مستخدم</div>
+                <div class="stat-card"><span id="adminVideos">0</span> فيديو</div>
+                <div class="stat-card"><span id="adminReports">0</span> بلاغ</div>
+                <div class="stat-card"><span id="adminBanned">0</span> محظور</div>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="users">المستخدمين</button>
+                <button class="tab-btn" data-tab="reports">البلاغات</button>
+                <button class="tab-btn" data-tab="videos">الفيديوهات</button>
+            </div>
+            
+            <input type="text" id="adminSearch" placeholder="🔍 بحث عن مستخدم..." class="admin-search">
+            
+            <div id="adminUsersList" class="admin-list"></div>
+            <div id="adminReportsList" class="admin-list" style="display:none"></div>
+            <div id="adminVideosList" class="admin-list" style="display:none"></div>
+        </div>
+    </section>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-page="home"><i class="fas fa-home"></i><span>الرئيسية</span></div>
+        <div class="nav-item" data-page="explore"><i class="fas fa-compass"></i><span>استكشاف</span></div>
+        <div class="nav-item" onclick="VoidUpload.openModal()"><i class="fas fa-plus-circle"></i><span>رفع</span></div>
+        <div class="nav-item" data-page="profile" id="profileNavBtn"><i class="fas fa-user"></i><span>حسابي</span></div>
+    </nav>
+
+    <!-- نافذة رفع الفيديو -->
+    <div id="uploadModal" class="modal" style="display:none">
+        <div class="modal-content upload-modal-content">
+            <div class="modal-header">
+                <h3>🎬 رفع فيديو جديد</h3>
+                <button onclick="VoidUpload.closeModal()">&times;</button>
+            </div>
+            <div id="uploadArea" class="upload-area" onclick="document.getElementById('videoFileInput').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>اضغط لاختيار فيديو</p>
+                <span>MP4, MOV حتى 200MB</span>
+                <input type="file" id="videoFileInput" accept="video/*" style="display:none">
+            </div>
+            <div id="uploadProgressBox" style="display:none">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                    <span>جاري الرفع...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+            </div>
+            <div id="videoInfoBox" style="display:none">
+                <video id="videoPreview" class="preview-video" controls></video>
+                <input type="text" id="videoTitle" placeholder="عنوان الفيديو" class="input-field">
+                <textarea id="videoDescription" placeholder="وصف الفيديو... #هاشتاغ" class="input-field" rows="3"></textarea>
+                <button class="btn-publish" onclick="VoidUpload.publish()">🚀 نشر الفيديو</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- لوحة التعليقات -->
+    <div id="commentsPanel" class="slide-panel">
+        <div class="panel-header">
+            <h3>💬 التعليقات</h3>
+            <button onclick="VoidApp.closePanel('commentsPanel')">&times;</button>
+        </div>
+        <div id="commentsList"></div>
+        <div class="comment-input">
+            <input type="text" id="commentInput" placeholder="أكتب تعليقاً...">
+            <button onclick="VoidVideo.sendComment()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- لوحة الرسائل -->
+    <div id="messagesPanel" class="slide-panel">
+        <div class="panel-header">
+            <h3>💭 الرسائل</h3>
+            <button onclick="VoidApp.closePanel('messagesPanel')">&times;</button>
+        </div>
+        <div id="conversationsList"></div>
+    </div>
+
+    <!-- لوحة الإشعارات -->
+    <div id="notificationsPanel" class="slide-panel">
+        <div class="panel-header">
+            <h3>🔔 الإشعارات</h3>
+            <button onclick="VoidApp.closePanel('notificationsPanel')">&times;</button>
+        </div>
+        <div id="notificationsList"></div>
+    </div>
+
+    <!-- نافذة المحادثة -->
+    <div id="chatWindow" class="modal" style="display:none">
+        <div class="modal-content chat-modal">
+            <div class="chat-header">
+                <button onclick="VoidChat.closeChat()"><i class="fas fa-arrow-right"></i></button>
+                <img id="chatAvatar" src="" alt="">
+                <div>
+                    <h4 id="chatUsername"></h4>
+                    <span id="chatStatus"><span class="online-dot"></span> متصل الآن</span>
+                </div>
+            </div>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input">
+                <button onclick="VoidChat.attachImage()"><i class="fas fa-image"></i></button>
+                <button onclick="VoidChat.toggleRecording()"><i class="fas fa-microphone"></i></button>
+                <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+                <button onclick="VoidChat.sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div id="recordingIndicator" class="recording-indicator" style="display:none">
+                <i class="fas fa-microphone"></i> جاري التسجيل... <span id="recordingTime">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل الملف -->
+    <div id="editProfileModal" class="modal" style="display:none">
+        <div class="modal-content">
+            <h3>✏️ تعديل الملف</h3>
+            <input type="text" id="editName" placeholder="الاسم" class="input-field">
+            <textarea id="editBio" placeholder="السيرة الذاتية" class="input-field"></textarea>
+            <input type="url" id="editWebsite" placeholder="الموقع الإلكتروني" class="input-field">
+            <div class="modal-buttons">
+                <button class="btn-save" onclick="VoidProfile.saveEdit()">حفظ</button>
+                <button class="btn-cancel" onclick="VoidApp.closeModal('editProfileModal')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة ملف المستخدم (عند زيارة مستخدم آخر) -->
+    <div id="userProfileModal" class="modal" style="display:none">
+        <div class="modal-content" style="max-width:400px">
+            <div class="modal-header">
+                <h3 id="viewUserName"></h3>
+                <button onclick="VoidApp.closeModal('userProfileModal')">&times;</button>
+            </div>
+            <div style="text-align:center">
+                <img id="viewUserAvatar" src="" style="width:100px;height:100px;border-radius:50%;margin:15px auto">
+                <p id="viewUserBio"></p>
+                <div class="stats" style="justify-content:center">
+                    <div><span id="viewUserFollowers">0</span> متابع</div>
+                    <div><span id="viewUserFollowing">0</span> يتابع</div>
+                </div>
+                <div style="display:flex;gap:10px;margin:20px 0">
+                    <button class="btn-save" onclick="VoidUser.followCurrent()">متابعة</button>
+                    <button class="btn-cancel" onclick="VoidChat.openChatWithCurrent()">رسالة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' });
+}
+</script>
+<script src="./js/firebase.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>
